@@ -1,7 +1,7 @@
 SYSTEM	= x86-64_darwin9_gcc4.0
 LIBFORMAT = static_pic
 
-OPTIONS = -O3 -w -o #-g
+OPTIONS = -O0 -w #-g
 COMP = g++ -c
 
 #------------------------------------------------------------
@@ -34,7 +34,7 @@ CPPC = g++ $(OPTIONS)
 #-lconcert
 #-m64 -lm -lpthread -framework CoreFoundation -framework IOKit
 
-CCOPT = -m64 -fPIC -fexceptions -DNDEBUG -DIL_STD -std=c++11 -stdlib=libstdc++
+CCOPT = -m64 -O -fPIC -fexceptions -DNDEBUG -DIL_STD -stdlib=libstdc++
 COPT  = -m64 -fPIC
 
 # ---------------------------------------------------------------------
