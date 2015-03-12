@@ -25,7 +25,13 @@ void Dados::print(){
 
 	cout << "custos"<< endl;
 	for(int k =0;k < tipos;k++){
-		cout << custo_recurso[k]<< " | ";
+			cout << custo_recurso[k]<< " | ";
+	}
+	cout << endl;
+
+	cout << "Disponibilidade"<< endl;
+	for(int k =0;k < tipos;k++){
+		cout << disponibilidade[k]<< " | ";
 	}
 	cout << endl;
 
