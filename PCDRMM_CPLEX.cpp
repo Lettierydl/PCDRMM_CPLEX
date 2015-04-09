@@ -9,6 +9,8 @@
 #include "Dados.h"
 #include "Arquivo.h"
 #include "Solucao.h"
+#include "Grafico.h"
+#include "Teste.h"
 
 #include <iostream>
 
@@ -43,20 +45,112 @@ Solucao* OptimizeCplex(Dados *d);
 
 int main(int argc, char **argv) {
 
-	int i = 1;
-	cout <<"instancia "<< i << endl;
+	vector<float> valores(12, 0);
+	for (int i = 1; i <= 12; i++) {
+		cout << "instancia " << i << endl;
 
-	string instancia = "Instancias_Denise";
-	Arquivo arq(instancia, i);
-	Dados *d = arq.lerInstancia();
+		string instancia = "Instancias_Denise";
+		Arquivo arq(instancia, i);
+		Dados *d = arq.lerInstancia();
 
 //	d->print();
 
-	Solucao *s = OptimizeCplex(d);
+		Solucao *s = OptimizeCplex(d);
 
-	s->print();
+		valores[i] = s->custo;
+
+		//s->print();
+
+		Teste t(d);
+		t.testarSolucao(s);
+
+		Grafico g;
+		//g.plotarGraficoDaSolucao(s);
+
+	}
+
+	for (int i = 1; i <= 12; i++) {
+		cout << valores[i] << endl;
+	}
 
 	return EXIT_SUCCESS;
+}
+
+void restricaoCusto(int T, IloEnv env, IloArray<IloArray<IloBoolVarArray> > x,
+		const IloModel& modelo, const IloNumVarArray& a, Dados* d) {
+	//mostrar que o recurso é renovavel
+	//terceira restricao
+	//garante que durante a execucao da atividade a quantidade ak nao será exedida
+
+	for (int t = 0; t < T; t++) {
+		for (int k = 0; k < d->tipos; k++) {
+			IloExpr recs(env);
+			for (int j = 0; j < d->j; j++) {
+				for (int i = 0; i < d->M[j]; i++) {
+
+					if (t + d->d[j][i] < T) {
+						for (int du = t; du <= t + d->d[j][i]; du++) {
+							recs += d->r[j][i][k] * x[j][i][du];
+						}
+					} else if (t < T) {
+						for (int du = t; du < T; du++) {
+							recs += d->r[j][i][k] * x[j][i][du];
+						}
+					}
+
+				}
+			}
+			modelo.add(recs <= a[k]);
+		}
+	}
+}
+
+void restricaoJanelaDeTempoDeJ(IloEnv env,
+		IloArray<IloArray<IloBoolVarArray> > x, const IloModel& modelo,
+		Dados* d, int T) {
+
+//restricao que garante que uma ativaida j so pode ter o tempo de inicio 0 do modo i
+	for (int j = 1; j < d->j - 1; j++) {
+		for (int i = 0; i < d->M[j]; i++) {
+			IloExpr TIMJI(env);
+			for (int t = 0; t < d->d[j][i]; t++) {
+				TIMJI += x[j][i][t];
+			}
+			modelo.add(TIMJI == 0);
+		}
+	}
+
+}
+
+void restricaoDePrecedencia(IloEnv env, int T,
+		IloArray<IloArray<IloBoolVarArray> > x, const IloModel& modelo,
+		Dados* d) {
+//segunda restricao
+//garante que as restricoes de precedencias sao obedecidas
+//ou seja, uma atividade j so inicia (t) quando todas suas predecessoras h (t + dhi ) tiverem terminado
+//(t + dhi ) >= t-dj
+	for (int j = 0; j < d->j; j++) {
+		IloExpr Tij(env);
+		for (int i = 0; i < d->M[j]; i++) {
+			for (int t = 0; t < T; t++) {
+				Tij += x[j][i][t] * (t - d->d[j][i]);
+				//Tij += x[j][i][t];
+			}
+		}
+		list<int>::iterator h;
+		for (h = d->H[j].begin(); h != d->H[j].end(); h++) {
+			//	cout << *h <<" -> "<< j << endl;
+			IloExpr Tfh(env);
+			for (int i = 0; i < d->M[*h]; i++) {
+				for (int t = 0; t < T; t++) {
+					Tfh += x[*h][i][t] * t;
+					//Tfh += x[*h][i][t] * (t - d->d[*h][i]);
+				}
+			}
+			modelo.add(Tfh <= Tij);
+		}
+	}
+
 }
 
 Solucao* OptimizeCplex(Dados *d) {
@@ -106,20 +200,14 @@ Solucao* OptimizeCplex(Dados *d) {
 			modelo.add(a[k]);
 		}
 
+		/*adicionando variavel de medicao de ak no modelo*/
+
 		//funcao objetivo FO
 		IloExpr FO(env);
 
 		for (int k = 0; k < d->tipos; k++) {
 			FO += a[k] * d->custo_recurso[k];
 		}
-
-		/*for (int j = 0; j < d->j; j++) {
-		 for (int i = 0; i < d->M[j]; i++) {
-		 for (int t = 0; t < T; t++) {
-		 FO += x[j][i][t] * t;
-		 }
-		 }
-		 }*/
 
 		//add FO no modelo
 		modelo.add(IloMinimize(env, FO));
@@ -141,66 +229,21 @@ Solucao* OptimizeCplex(Dados *d) {
 		}
 
 		//restricao que garante que uma ativaida j so pode ter o tempo de inicio 0 do modo i
-		for (int j = 1; j < d->j - 1; j++) {
-
-			for (int i = 0; i < d->M[j]; i++) {
-				IloExpr TIMJI(env);
-				for (int t = 0; t < d->d[j][i]; t++) {
-					TIMJI += x[j][i][t];
-				}
-				modelo.add(TIMJI == 0);
-			}
-
-		}
+		restricaoJanelaDeTempoDeJ(env, x, modelo, d, T);
 
 		//segunda restricao
 		//garante que as restricoes de precedencias sao obedecidas
 		//ou seja, uma atividade j so inicia (t) quando todas suas predecessoras h (t + dhi ) tiverem terminado
 		//(t + dhi ) >= t-dj
-		for (int j = 0; j < d->j; j++) {
+		restricaoDePrecedencia(env, T, x, modelo, d);
 
-			IloExpr Tij(env);
-			for (int i = 0; i < d->M[j]; i++) {
-				for (int t = 0; t < T; t++) {
-
-					Tij += x[j][i][t] * (t - d->d[j][i]);
-
-				}
-			}
-
-			list<int>::iterator h;
-			for (h = d->H[j].begin(); h != d->H[j].end(); h++) {
-				//	cout << *h <<" -> "<< j << endl;
-				IloExpr Tfh(env);
-				for (int i = 0; i < d->M[*h]; i++) {
-					for (int t = 0; t < T; t++) {
-						Tfh += x[*h][i][t] * t;
-
-					}
-				}
-				modelo.add(Tfh <= Tij);
-			}
-
-		}
 		//mostrar que o recurso é renovavel
 
 		//terceira restricao
 		//garante que durante a execucao da atividade a quantidade ak nao será exedida
-		for (int k = 0; k < d->tipos; k++) {
-			IloExpr sum(env);
-			for (int t = 0; t < T; t++) {
+		//restricaoCusto(T, env, x, modelo, a, d);
 
-				for (int j = 0; j < d->j; j++) {
-
-					for (int i = 0; i < d->M[j]; i++) {
-
-						sum += d->r[j][i][k] * x[j][i][t];
-					}
-				}
-			}
-			modelo.add(sum <= a[k]);
-
-		}
+		restricaoCusto(T, env, x, modelo, a, d);
 
 		//Executa o modelo
 		IloCplex PCDRMM(modelo);
@@ -208,7 +251,11 @@ Solucao* OptimizeCplex(Dados *d) {
 		PCDRMM.solve();
 
 		cout << PCDRMM.getObjValue() << endl;
-		cout << endl;
+
+		for (int k = 0; k < d->tipos; k++) {
+			cout << PCDRMM.getValue(a[k]) << " | ";
+		}
+		cout << endl << endl;
 
 		//preencher solucao com resposta
 		Solucao *s = new Solucao(d);
@@ -219,11 +266,14 @@ Solucao* OptimizeCplex(Dados *d) {
 					if (PCDRMM.getValue(x[j][i][t]) > 0.99) {//a atividade j foi executada no modo i e termina no tempo t?
 
 						s->alocarAtividade(j, t - d->d[j][i], i);
+						//s->alocarAtividade(j, t, i);
 
 					}
 				}
 			}
 		}
+		s->atualizarDemanda(0, s->calcular_tempo());
+		s->calcular_custo();
 
 		env.end();
 
@@ -231,6 +281,7 @@ Solucao* OptimizeCplex(Dados *d) {
 
 	} catch (IloException & e) {
 		cerr << "Erro : " << e << endl;
+		return NULL;
 	}
 
 }
