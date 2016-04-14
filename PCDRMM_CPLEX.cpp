@@ -45,32 +45,69 @@ Solucao* OptimizeCplex(Dados *d);
 
 int main(int argc, char **argv) {
 
-	vector<float> valores(12, 0);
-	for (int i = 1; i <= 12; i++) {
+	cout << "PCDRMM_CPLEX" << endl;
+
+	int qt = 1;
+
+	vector<float> execucao(qt, 0);
+	vector<float> tempos(qt, 0);
+	vector<float> valores(qt, 0);
+	vector< string > instancia_name(qt);
+	//cout << "PSPLIB/j20" << endl;
+
+	for (int i = 1; i <= qt; i++) {
 		cout << "instancia " << i << endl;
 
+		clock_t start_time;
+		start_time = clock();
+
+		/*
 		string instancia = "Instancias_Denise";
 		Arquivo arq(instancia, i);
 		Dados *d = arq.lerInstancia();
+		*/
+
+		string instancia = "PSPLIB/j20";
+		Arquivo arq(instancia, i);
+
+		Dados *d = arq.lerInstanciaPSPLIB();
+
+		Solucao *cus = new Solucao(d);
+		cus->iniciarSolucaoComMelhorCusto();
+		d->D = cus->tempo;
+
+		//d->D = limites[i-1];
 
 //	d->print();
 
 		Solucao *s = OptimizeCplex(d);
 
+		cout << s->custo << " X " << s->tempo << endl;
+
+		//cout << cus->tempo << endl;
+
+		float time_in_seconds = (clock() - start_time) / (double) CLOCKS_PER_SEC;
+		execucao[i] = time_in_seconds;
 		valores[i] = s->custo;
+		tempos[i] = s->tempo;
+		//instancia_name[i] = arq.nomeArquivo;
+
+		arq.salvarResposta(i, s->custo, s->tempo, time_in_seconds);
 
 		//s->print();
 
-		Teste t(d);
-		t.testarSolucao(s);
+		//Teste t(d);
+		//t.testarSolucao(s);
 
-		Grafico g;
+		//Grafico g;
 		//g.plotarGraficoDaSolucao(s);
 
 	}
 
-	for (int i = 1; i <= 12; i++) {
-		cout << valores[i] << endl;
+	for (int i = 0; i <= qt; i++) {
+		//cout << instancia_name[i]<<"\t\t" << valores[i]<<"\t" <<  tempos[i] << "\t"<< execucao[i] <<endl;
+		cout << valores[i]<< "\t"<< execucao[i] <<endl;
+		//printf(".s\t %.2f\t%.2f\n", instancia_name[i], valores[i], tempos[i]);
 	}
 
 	return EXIT_SUCCESS;
@@ -163,6 +200,7 @@ Solucao* OptimizeCplex(Dados *d) {
 		IloModel modelo(env);
 
 		int T = d->D + 1; // prazo para o makespan
+		cout << T << endl;
 
 		//variaveis de desisao
 
@@ -248,6 +286,9 @@ Solucao* OptimizeCplex(Dados *d) {
 		//Executa o modelo
 		IloCplex PCDRMM(modelo);
 		PCDRMM.exportModel("PCDRMM.lp");
+
+		//PCDRMM.setOut(env.getNullStream());
+
 		PCDRMM.solve();
 
 		cout << PCDRMM.getObjValue() << endl;
@@ -256,7 +297,6 @@ Solucao* OptimizeCplex(Dados *d) {
 			cout << PCDRMM.getValue(a[k]) << " | ";
 		}
 		cout << endl << endl;
-
 		//preencher solucao com resposta
 		Solucao *s = new Solucao(d);
 

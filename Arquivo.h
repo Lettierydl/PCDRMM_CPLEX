@@ -29,12 +29,20 @@ class Arquivo{
 
 		Dados * lerInstancia();
 
+		Dados * lerInstanciaPSPLIB();
+
 		void gravarTabelaDeResultados(int instacia, float custo, int makespan);
 		void gravarSolucao(int instancia, Solucao * s);
+		void salvarResposta(int index_instance, float custo, int tempo, float tempo_de_execucao);
 
 
 		Arquivo(string nomeArquivo, int numero);
 		~Arquivo();
+
+private:
+	void instancia_denise(int numero, const string& nomeArquivo);
+	void instancia_PSPLIB(int indice, vector<string> arq, const string& nomeArquivo);
+	vector<string> arquivosInstancias(string *url);
 };
 
 

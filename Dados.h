@@ -1,5 +1,5 @@
 /*
- * Dados.h
+2 * Dados.h
  *
  *  Created on: 25/11/2014
  *      Author: Leo
@@ -10,12 +10,18 @@
 
 #include <list>
 #include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <algorithm>
 
 using namespace std;
 
 class Dados {
 public:
 	int numeroInstacia;//apenas para identificar qual instancia se refere
+	string * arquivo;
+
 
 	int tipos ; // m quatidades de tipos diferentes de recrusos 4
 	int j ; // n quatidades de atividades mais as atividades virtuais
@@ -28,12 +34,16 @@ public:
 	vector<int>disponibilidade;
 	vector <float>custo_recurso;// custo de cada recurso para ser utilizado na funcao c();
 
+	map<int , set<int > >G;//grafo que demarca a relacao de precedencia das atividades;
+
 
 	void print();
-
+	void criarCustos();
 
 	Dados(int tipos, int j, int D);
 	virtual ~Dados();
+
+
 
 };
 

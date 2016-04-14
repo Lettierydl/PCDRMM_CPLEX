@@ -32,7 +32,7 @@ bool Teste::testarSolucao(Solucao * s) {
 	valid &= testePrecedencias(s);
 
 	if(valid){
-		cout << "Solucao viavel"<< endl;
+	//	cout << "Solucao viavel"<< endl;
 	}
 	return valid;
 }

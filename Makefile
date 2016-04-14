@@ -12,8 +12,8 @@ COMP = g++ -c
 #
 #------------------------------------------------------------
 			
-CPLEXDIR = /Users/Leo/Applications/IBM/ILOG/CPLEX_Studio124/cplex
-CONCERTDIR  = /Users/Leo/Applications/IBM/ILOG/CPLEX_Studio124/concert
+CPLEXDIR = /Users/Lettiery/Applications/IBM/ILOG/CPLEX_Studio124/cplex
+CONCERTDIR  = /Users/Lettiery/Applications/IBM/ILOG/CPLEX_Studio124/concert
 # ---------------------------------------------------------------------
 # Compiler selection
 # ---------------------------------------------------------------------
